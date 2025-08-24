@@ -1,6 +1,5 @@
 const express = require("express");
 const cors = require("cors");
-
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
@@ -13,14 +12,14 @@ const app = express();
 connectDB();
 
 // Middleware
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'], // Allow frontend origins
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:3000"], // Allow frontend origins
+    credentials: true,
+  })
+);
 app.use(express.json()); // to read JSON body
 app.use(cookieParser()); // to read cookies
-
-
 
 // Routes
 app.get("/", (req, res) => {
