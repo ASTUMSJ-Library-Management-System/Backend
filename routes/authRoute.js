@@ -29,5 +29,9 @@ router.post(
   handleValidationErrors,
   loginAdmin
 );
+router.post("/logout", (req, res) => {
+  res.clearCookie("token"); // if using cookie
+  res.json({ message: "Logged out successfully" });
+});
 
 module.exports = router;

@@ -25,9 +25,23 @@ app.use(cookieParser()); // to read cookies
 app.get("/", (req, res) => {
   res.send("Server is running");
 });
+
 app.use("/api/auth", authRoutes);
 
-// Error handling (optional)
+const bookRoutes = require("./routes/bookRoute");
+app.use("/api/books", bookRoutes);
+const borrowRoutes = require("./routes/borrowRoute");
+// Mount borrow routes under /api/borrow
+app.use("/api/borrow", borrowRoutes);
+///
+const paymentRoutes = require("./routes/paymentRoute");
+app.use("/api/payments", paymentRoutes);
+
+// General routes (stats, users, member summary)
+const generalRoutes = require("./routes/generalRoute");
+app.use("/api", generalRoutes);
+
+// Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: "Server Error" });
