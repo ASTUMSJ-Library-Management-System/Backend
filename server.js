@@ -1,9 +1,17 @@
+// server.js
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
+
 const authRoutes = require("./routes/authRoute");
+const bookRoutes = require("./routes/bookRoute");
+const borrowRoutes = require("./routes/borrowRoute");
+const paymentRoutes = require("./routes/paymentRoute");
+const generalRoutes = require("./routes/generalRoute");
+const reviewRoutes = require("./routes/reviewRoutes");
+
 
 dotenv.config();
 const app = express();
@@ -14,32 +22,27 @@ connectDB();
 // Middleware
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:3000"], // Allow frontend origins
+    origin: ["http://localhost:5173", "http://localhost:3000"],
     credentials: true,
   })
 );
-app.use(express.json()); // to read JSON body
-app.use(cookieParser()); // to read cookies
+app.use(express.json());
+app.use(cookieParser());
 
-// Routes
+// Health
 app.get("/", (req, res) => {
   res.send("Server is running");
 });
 
+// Routes
 app.use("/api/auth", authRoutes);
-
-const bookRoutes = require("./routes/bookRoute");
 app.use("/api/books", bookRoutes);
-const borrowRoutes = require("./routes/borrowRoute");
-// Mount borrow routes under /api/borrow
 app.use("/api/borrow", borrowRoutes);
-///
-const paymentRoutes = require("./routes/paymentRoute");
 app.use("/api/payments", paymentRoutes);
-
-// General routes (stats, users, member summary)
-const generalRoutes = require("./routes/generalRoute");
 app.use("/api", generalRoutes);
+
+// ⭐ Mount reviews here (NOTE the path)
+app.use("/api/reviews", reviewRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {
@@ -47,6 +50,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Server Error" });
 });
 
-// Start server
+// Start
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

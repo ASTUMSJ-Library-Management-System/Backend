@@ -72,21 +72,31 @@ exports.requestReturn = async (req, res) => {
     const borrowId = req.params.borrowId;
 
     const borrow = await Borrow.findById(borrowId);
-    if (!borrow) return res.status(404).json({ message: "Borrow record not found" });
+    if (!borrow)
+      return res.status(404).json({ message: "Borrow record not found" });
     if (borrow.userId.toString() !== userId) {
-      return res.status(403).json({ message: "Not allowed to request return for this book" });
+      return res
+        .status(403)
+        .json({ message: "Not allowed to request return for this book" });
     }
     if (borrow.status === "Returned") {
-      return res.status(400).json({ message: "This borrow is already returned" });
+      return res
+        .status(400)
+        .json({ message: "This borrow is already returned" });
     }
     if (borrow.status === "Pending") {
-      return res.status(400).json({ message: "Return already requested and pending approval" });
+      return res
+        .status(400)
+        .json({ message: "Return already requested and pending approval" });
     }
 
     borrow.status = "Pending";
     await borrow.save();
 
-    res.json({ message: "Return request submitted and pending admin approval", borrow });
+    res.json({
+      message: "Return request submitted and pending admin approval",
+      borrow,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -98,9 +108,12 @@ exports.approveReturn = async (req, res) => {
     const borrowId = req.params.borrowId;
 
     const borrow = await Borrow.findById(borrowId);
-    if (!borrow) return res.status(404).json({ message: "Borrow record not found" });
+    if (!borrow)
+      return res.status(404).json({ message: "Borrow record not found" });
     if (borrow.status !== "Pending") {
-      return res.status(400).json({ message: "Borrow is not pending return approval" });
+      return res
+        .status(400)
+        .json({ message: "Borrow is not pending return approval" });
     }
 
     const today = new Date();
@@ -125,9 +138,12 @@ exports.declineReturn = async (req, res) => {
     const borrowId = req.params.borrowId;
 
     const borrow = await Borrow.findById(borrowId);
-    if (!borrow) return res.status(404).json({ message: "Borrow record not found" });
+    if (!borrow)
+      return res.status(404).json({ message: "Borrow record not found" });
     if (borrow.status !== "Pending") {
-      return res.status(400).json({ message: "Borrow is not pending return approval" });
+      return res
+        .status(400)
+        .json({ message: "Borrow is not pending return approval" });
     }
 
     borrow.status = "Active";
@@ -146,22 +162,22 @@ exports.getMyBorrows = async (req, res) => {
     // If admin, fetch all borrows; if student, fetch only their borrows
     const filter = req.user.role === "admin" ? {} : { userId };
     const borrows = await Borrow.find(filter)
-      .populate("bookId", "title author") // optional: show book info
-      .populate("userId", "name email studentId"); // optional: show user info
+      .populate("bookId", "title author image") // ✅ added image
+      .populate("userId", "name email studentId");
 
     res.json(borrows);
-  }catch (err) {
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
-}
-
+};
 
 // Admin: View all borrow records
 exports.getUserBorrows = async (req, res) => {
   try {
     const borrows = await Borrow.find()
-      .populate("userId", "name email studentId") // optional: show user info
-      .populate("bookId", "title author"); // optional: show book info
+      .populate("userId", "name email studentId")
+      .populate("bookId", "title author image avgRating reviewCount");
+
     res.json(borrows);
   } catch (err) {
     res.status(500).json({ message: err.message });
