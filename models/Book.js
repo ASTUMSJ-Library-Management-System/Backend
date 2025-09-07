@@ -9,13 +9,19 @@ const bookSchema = new mongoose.Schema(
     publicationYear: { type: Number, required: true },
     language: { type: String },
     description: { type: String },
-    image: { type: String }, // URL to Cloudinary image
+    image: { type: String },
     totalCopies: { type: Number, required: true },
     availableCopies: {
       type: Number,
       default: function () {
         return this.totalCopies;
       },
+    },
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
     },
   },
   { timestamps: true }

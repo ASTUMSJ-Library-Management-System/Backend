@@ -8,7 +8,7 @@ module.exports.validateRegister = [
     .withMessage("Email is required")
     .isEmail()
     .withMessage("Invalid email"),
-  body("studentId").notEmpty().withMessage("Student ID is required"),
+
   body("department").notEmpty().withMessage("Department is required"),
   body("password")
     .notEmpty()

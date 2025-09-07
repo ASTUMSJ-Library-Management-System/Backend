@@ -7,18 +7,14 @@ const {
 const { upload } = require("../config/cloudinary");
 const Payment = require("../models/Payment");
 
-// STUDENT: Upload Payment Proof
-
 router.post(
   "/",
   authMiddleware,
   upload.single("screenshot"),
   async (req, res) => {
     try {
-      // Use `req.user.id` from JWT
       const userId = req.user.id;
 
-      // Only block if an Approved payment exists in the current month
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
       const approvedPayment = await Payment.findOne({
@@ -33,10 +29,12 @@ router.post(
       if (approvedPayment) {
         return res
           .status(400)
-          .json({ message: "You already have an approved payment for this month. One payment per month is allowed." });
+          .json({
+            message:
+              "You already have an approved payment for this month. One payment per month is allowed.",
+          });
       }
 
-      // Make sure a file was uploaded
       if (!req.file) {
         return res.status(400).json({ message: "No screenshot uploaded" });
       }
@@ -60,7 +58,6 @@ router.post(
   }
 );
 
-// ADMIN: View all Payments
 router.get("/", authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const payments = await Payment.find()
@@ -73,8 +70,6 @@ router.get("/", authMiddleware, adminMiddleware, async (req, res) => {
       .json({ message: "Error fetching payments", error: err.message });
   }
 });
-
-// ADMIN: Approve or Reject Payment
 
 router.put("/:id", authMiddleware, adminMiddleware, async (req, res) => {
   try {
@@ -99,7 +94,7 @@ router.put("/:id", authMiddleware, adminMiddleware, async (req, res) => {
   }
 });
 
-router.get('/myPayments', authMiddleware, async (req, res) => {
+router.get("/myPayments", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const payments = await Payment.find({ userId }).sort({ createdAt: -1 });
@@ -111,7 +106,7 @@ router.get('/myPayments', authMiddleware, async (req, res) => {
   }
 });
 
-router.get('/isPaid', authMiddleware, async (req, res) => {
+router.get("/isPaid", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const currentMonth = new Date().getMonth();

@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 
-// Controllers
 const {
   addBook,
   updateBook,
@@ -9,7 +8,6 @@ const {
   getBooks,
 } = require("../controllers/bookController");
 
-// Middlewares
 const {
   authMiddleware,
   adminMiddleware,
@@ -17,8 +15,6 @@ const {
 
 const { upload } = require("../config/cloudinary");
 
-//  BOOK ROUTES
-// Admin routes
 router.post(
   "/",
   authMiddleware,
@@ -35,7 +31,6 @@ router.put(
 );
 router.delete("/:id", authMiddleware, adminMiddleware, deleteBook);
 
-// User route (any logged-in user)
 router.get("/", authMiddleware, getBooks);
 
 module.exports = router;

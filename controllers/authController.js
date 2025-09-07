@@ -1,32 +1,51 @@
-
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const sendMailTo = require("../email");
 
 // Helper: return safe user data (exclude password)
 const sanitizeUser = (user) => ({
   id: user._id,
   name: user.name,
   email: user.email,
-  studentId: user.studentId,
+  studentId: user.studentId || null,
   department: user.department,
+  idPicture: user.idPicture,
   role: user.role,
 });
 
 module.exports.register = async (req, res) => {
   try {
+    console.log("Request body:", req.body);
+    console.log("Request file:", req.file);
+    console.log("Request files:", req.files);
+    console.log("Content-Type:", req.get("Content-Type"));
+
     const { name, email, studentId, department, role, password } = req.body;
 
+    // Check if ID picture was uploaded
+    if (!req.file) {
+      console.log("No file found in request");
+      return res.status(400).json({ message: "ID picture is required" });
+    }
+
+    console.log("Uploaded file info:", req.file);
+    console.log("File path:", req.file.path);
+
+    // Use local file path instead of Cloudinary
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       name,
       email,
-      studentId,
+      // studentId,
       department,
+      idPicture: req.file.path, // Local file path
       role,
       password: hashedPassword,
     });
+
+    console.log("Created user with idPicture:", user.idPicture);
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
@@ -37,6 +56,7 @@ module.exports.register = async (req, res) => {
       expiresIn: "30d",
     });
 
+    await sendMailTo(user.email);
     res.status(201).json({
       user: sanitizeUser(user),
       token,

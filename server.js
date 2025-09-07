@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
+const path = require("path");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoute");
 
@@ -20,6 +21,9 @@ app.use(
 );
 app.use(express.json()); // to read JSON body
 app.use(cookieParser()); // to read cookies
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.get("/", (req, res) => {
@@ -40,6 +44,10 @@ app.use("/api/payments", paymentRoutes);
 // General routes (stats, users, member summary)
 const generalRoutes = require("./routes/generalRoute");
 app.use("/api", generalRoutes);
+
+// Review routes
+const reviewRoutes = require("./routes/reviewRoute");
+app.use("/api/reviews", reviewRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {

@@ -11,11 +11,40 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: "membership_payments", // folder on Cloudinary
+    folder: "membership_payments",
+    allowed_formats: ["jpg", "png", "jpeg"],
+  },
+});
+
+const userStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "user_id_pictures",
     allowed_formats: ["jpg", "png", "jpeg"],
   },
 });
 
 const upload = multer({ storage });
+const uploadUserImage = multer({ storage: userStorage });
 
-module.exports = { cloudinary, upload };
+// Direct upload function for user ID pictures
+const uploadUserImageDirect = async (fileBuffer, fileName) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_stream(
+      {
+        folder: "user_id_pictures",
+        resource_type: "image",
+        allowed_formats: ["jpg", "png", "jpeg"],
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      }
+    ).end(fileBuffer);
+  });
+};
+
+module.exports = { cloudinary, upload, uploadUserImage, uploadUserImageDirect };
