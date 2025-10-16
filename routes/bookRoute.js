@@ -13,20 +13,20 @@ const {
   adminMiddleware,
 } = require("../middleware/authMiddleware");
 
-const { upload } = require("../config/cloudinary");
+const { uploadBookImage } = require("../config/cloudinary");
 
 router.post(
   "/",
   authMiddleware,
   adminMiddleware,
-  upload.single("image"),
+  uploadBookImage.single("image"),
   addBook
 );
 router.put(
   "/:id",
   authMiddleware,
   adminMiddleware,
-  upload.single("image"),
+  uploadBookImage.single("image"),
   updateBook
 );
 router.delete("/:id", authMiddleware, adminMiddleware, deleteBook);

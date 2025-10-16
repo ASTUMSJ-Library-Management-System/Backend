@@ -1,6 +1,8 @@
 const Borrow = require("../models/Borrow");
 const Book = require("../models/Book");
 const Payment = require("../models/Payment"); // Make sure you have Payment model
+const User = require("../models/User");
+const Email = require("../email");
 
 // Borrow a book
 exports.borrowBook = async (req, res) => {
@@ -59,6 +61,17 @@ exports.borrowBook = async (req, res) => {
     });
     await borrow.save();
 
+    // Email notification: Borrow confirmation
+    try {
+      const [userDoc, bookDoc] = await Promise.all([
+        User.findById(userId, "name email"),
+        Book.findById(bookId, "title author"),
+      ]);
+      if (userDoc && bookDoc) {
+        Email.sendBorrowConfirmationEmail(userDoc, borrow, bookDoc).catch(() => {});
+      }
+    } catch (_) {}
+
     res.status(201).json(borrow);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -85,6 +98,17 @@ exports.requestReturn = async (req, res) => {
 
     borrow.status = "Pending";
     await borrow.save();
+
+    // Email notification: Return requested (pending)
+    try {
+      const [userDoc, bookDoc] = await Promise.all([
+        User.findById(userId, "name email"),
+        Book.findById(borrow.bookId, "title author"),
+      ]);
+      if (userDoc && bookDoc) {
+        Email.sendReturnRequestedEmail(userDoc, borrow, bookDoc).catch(() => {});
+      }
+    } catch (_) {}
 
     res.json({ message: "Return request submitted and pending admin approval", borrow });
   } catch (err) {
@@ -113,6 +137,14 @@ exports.approveReturn = async (req, res) => {
       await book.save();
     }
 
+    // Email notification: Return approved (or overdue)
+    try {
+      const userDoc = await User.findById(borrow.userId, "name email");
+      if (userDoc && book) {
+        Email.sendReturnApprovedEmail(userDoc, borrow, book).catch(() => {});
+      }
+    } catch (_) {}
+
     res.json({ message: "Return approved", borrow });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -133,6 +165,17 @@ exports.declineReturn = async (req, res) => {
     borrow.status = "Active";
     await borrow.save();
 
+    // Email notification: Return declined
+    try {
+      const [userDoc, bookDoc] = await Promise.all([
+        User.findById(borrow.userId, "name email"),
+        Book.findById(borrow.bookId, "title author"),
+      ]);
+      if (userDoc && bookDoc) {
+        Email.sendReturnDeclinedEmail(userDoc, borrow, bookDoc).catch(() => {});
+      }
+    } catch (_) {}
+
     res.json({ message: "Return request declined", borrow });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -146,7 +189,7 @@ exports.getMyBorrows = async (req, res) => {
     // If admin, fetch all borrows; if student, fetch only their borrows
     const filter = req.user.role === "admin" ? {} : { userId };
     const borrows = await Borrow.find(filter)
-      .populate("bookId", "title author") // optional: show book info
+      .populate("bookId", "title author image description language ISBN category publicationYear") // include more fields for frontend display
       .populate("userId", "name email studentId"); // optional: show user info
 
     res.json(borrows);
@@ -161,7 +204,7 @@ exports.getUserBorrows = async (req, res) => {
   try {
     const borrows = await Borrow.find()
       .populate("userId", "name email studentId") // optional: show user info
-      .populate("bookId", "title author"); // optional: show book info
+      .populate("bookId", "title author image description language ISBN category publicationYear"); // include more fields for frontend display
     res.json(borrows);
   } catch (err) {
     res.status(500).json({ message: err.message });

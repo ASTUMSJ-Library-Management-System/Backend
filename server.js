@@ -1,16 +1,30 @@
+
+const dotenv = require("dotenv");
+// Load environment variables from .env file at the very start
+dotenv.config();
+
 const express = require("express");
 const cors = require("cors");
-const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 const path = require("path");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoute");
+const { ensureAdminUserExists } = require("./seed");
 
-dotenv.config();
+// Optional: Verify that the Gmail environment variables are loaded
+console.log("GMAIL_USER:", process.env.GMAIL_USER ? "Loaded" : "MISSING");
+console.log("GMAIL_APP_PASSWORD:", process.env.GMAIL_APP_PASSWORD ? "Loaded" : "MISSING");
+
 const app = express();
 
 // Connect DB
-connectDB();
+connectDB().then(() => {
+  // After DB connection is successful, ensure the admin user exists.
+  // This is a good place for any initial data seeding.
+  ensureAdminUserExists().catch((err) => {
+    console.error("Failed to run data seeder:", err);
+  });
+});
 
 // Middleware
 app.use(

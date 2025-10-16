@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const sendMailTo = require("../email");
+const Email = require("../email");
 
 // Helper: return safe user data (exclude password)
 const sanitizeUser = (user) => ({
@@ -38,7 +38,7 @@ module.exports.register = async (req, res) => {
     const user = await User.create({
       name,
       email,
-      // studentId,
+      studentId,
       department,
       idPicture: req.file.path, // Local file path
       role,
@@ -56,12 +56,20 @@ module.exports.register = async (req, res) => {
       expiresIn: "30d",
     });
 
-    await sendMailTo(user.email);
+    // Immediately send the success response to the user
     res.status(201).json({
       user: sanitizeUser(user),
       token,
       refreshToken,
     });
+
+    // Send the welcome email in the background.
+    // This is a "fire and forget" operation. If it fails, it will log an error
+    // but it won't affect the user's successful registration.
+    Email.sendRegistrationEmail(user).catch(emailError => {
+      console.error(`Failed to send welcome email to ${user.email} after registration:`, emailError);
+    });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -134,6 +142,11 @@ module.exports.loginAdmin = async (req, res) => {
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
     if (!isPasswordCorrect) {
       return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // Security Fix: Ensure the user has the 'admin' role before allowing login.
+    if (user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Not an administrator." });
     }
 
     const token = jwt.sign(

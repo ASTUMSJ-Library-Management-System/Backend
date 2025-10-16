@@ -24,8 +24,17 @@ const userStorage = new CloudinaryStorage({
   },
 });
 
+const bookStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "book_covers",
+    allowed_formats: ["jpg", "png", "jpeg"],
+  },
+});
+
 const upload = multer({ storage });
 const uploadUserImage = multer({ storage: userStorage });
+const uploadBookImage = multer({ storage: bookStorage });
 
 // Direct upload function for user ID pictures
 const uploadUserImageDirect = async (fileBuffer, fileName) => {
@@ -47,4 +56,10 @@ const uploadUserImageDirect = async (fileBuffer, fileName) => {
   });
 };
 
-module.exports = { cloudinary, upload, uploadUserImage, uploadUserImageDirect };
+module.exports = {
+  cloudinary,
+  upload,
+  uploadUserImage,
+  uploadUserImageDirect,
+  uploadBookImage,
+};
