@@ -29,8 +29,8 @@ connectDB().then(() => {
 // Middleware
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:3000"], // Allow frontend origins
-    credentials: true,
+    origin: "*", // <- This allows any origin
+    credentials: true, // Note: credentials won't work with "*" for security reasons
   })
 );
 app.use(express.json()); // to read JSON body
