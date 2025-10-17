@@ -12,78 +12,25 @@ const APP_NAME = process.env.APP_NAME || "Library Management";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const REPLY_TO = process.env.REPLY_TO || undefined;
 
-// Lazily initialized transporter so the app can boot even if email is not configured.
-let transporter = null;
-let transporterVerified = false;
+// Create transporter
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: Number(process.env.GMAIL_SMTP_PORT) || 587,
+  secure: false, // use SSL
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
 
-function buildTransporter() {
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
-
-  if (!user || !pass) {
-    // Defer failure to send time; this lets the server run without mail creds.
-    return null;
+// Verify transporter connection
+transporter.verify((error) => {
+  if (error) {
+    console.error("❌ Email transporter verification failed:", error);
+  } else {
+    console.log("✅ Email transporter is ready to send messages");
   }
-
-  // Prefer explicit SMTP config for Gmail. App passwords require SMTP (not OAuth).
-  const port = Number(process.env.GMAIL_SMTP_PORT) || 465; // 465 = SSL, 587 = STARTTLS
-  const secure = port === 465;
-
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port,
-    secure,
-    auth: { user, pass },
-    // Connection pooling keeps SMTP connections warm for multiple messages.
-    pool: true,
-    maxConnections: 3,
-    maxMessages: 50,
-    // Ensure modern TLS. Do not disable certificate verification in production.
-    tls: { minVersion: "TLSv1.2" },
-  });
-}
-
-async function ensureTransporter() {
-  if (!transporter) {
-    transporter = buildTransporter();
-  }
-  if (!transporter) {
-    return { ok: false, reason: "missing-creds" };
-  }
-  if (transporterVerified) {
-    return { ok: true };
-  }
-  try {
-    await transporter.verify();
-    transporterVerified = true;
-    return { ok: true };
-  } catch (err) {
-    // Provide actionable hints
-    const hints = [];
-    if (err?.code === "EAUTH") {
-      hints.push(
-        "EAUTH: Authentication failed. Use a Gmail App Password (account must have 2FA).",
-        "Ensure GMAIL_USER matches the Gmail account of the app password."
-      );
-    }
-    if (/Invalid login/i.test(err?.message || "")) {
-      hints.push(
-        "Invalid login: Double-check GMAIL_USER and GMAIL_APP_PASSWORD."
-      );
-    }
-    if (/534-5.7.14/i.test(err?.response || "")) {
-      hints.push(
-        "Google blocked sign-in. Confirm that you are using an App Password, not your normal password."
-      );
-    }
-    console.error(
-      "Email transport verify failed:",
-      err?.message || err,
-      hints.length ? `\nHints:\n- ${hints.join("\n- ")}` : ""
-    );
-    return { ok: false, reason: "verify-failed", error: err };
-  }
-}
+});
 
 async function sendEmail({ to, subject, html, text }) {
   // Fail fast if credentials are missing
@@ -94,19 +41,6 @@ async function sendEmail({ to, subject, html, text }) {
     return { skipped: true };
   }
 
-  const ready = await ensureTransporter();
-  if (!ready.ok) {
-    return {
-      success: false,
-      error:
-        ready.reason === "verify-failed"
-          ? `Email transport verification failed: ${
-              ready.error?.message || "unknown error"
-            }`
-          : "Email transport not available (missing credentials)",
-    };
-  }
-
   // Gmail requires From to match authenticated user. We set the display name to APP_NAME.
   const mailOptions = {
     from: `${APP_NAME} <${FROM_EMAIL}>`,
@@ -114,7 +48,6 @@ async function sendEmail({ to, subject, html, text }) {
     subject,
     html, // Your beautiful HTML email
     text: text || undefined, // Plain text version
-    text: text || undefined,
     replyTo: REPLY_TO || undefined,
   };
 
@@ -128,27 +61,9 @@ async function sendEmail({ to, subject, html, text }) {
       messageId: info.messageId,
       accepted: info.accepted,
     };
-  } catch (err) {
-    const hints = [];
-    if (err?.code === "EAUTH") {
-      hints.push(
-        "Check GMAIL_USER and GMAIL_APP_PASSWORD (use an App Password with 2FA)."
-      );
-    }
-    if (err?.code === "ESOCKET") {
-      hints.push(
-        "Network issue reaching smtp.gmail.com. Check outbound connectivity and firewall."
-      );
-    }
-    if (/Invalid login/i.test(err?.message || "")) {
-      hints.push("Invalid login: App Password likely incorrect or revoked.");
-    }
-    console.error(
-      "Email send failed:",
-      err?.message || err,
-      hints.length ? `\nHints:\n- ${hints.join("\n- ")}` : ""
-    );
-    return { success: false, error: err.message };
+  } catch (error) {
+    console.error("Email send failed:", error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -353,17 +268,14 @@ function returnDeclinedTemplate(user, borrow, book) {
 module.exports = {
   // Optionally call this once at server start to fail fast if misconfigured
   verifyEmailTransport: async () => {
-    const res = await ensureTransporter();
-    if (!res.ok) {
-      throw new Error(
-        res.reason === "verify-failed"
-          ? `Email transport verify failed: ${
-              res.error?.message || "unknown error"
-            }`
-          : "Email transport not available: missing credentials"
-      );
+    try {
+      await transporter.verify();
+      console.log("✅ Email transporter is ready to send messages");
+      return true;
+    } catch (error) {
+      console.error("❌ Email transporter verification failed:", error);
+      throw new Error(`Email transport verify failed: ${error.message}`);
     }
-    return true;
   },
 
   sendEmail,
