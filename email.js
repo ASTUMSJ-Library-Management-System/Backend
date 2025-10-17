@@ -67,12 +67,20 @@ async function ensureTransporter() {
       );
     }
     if (/Invalid login/i.test(err?.message || "")) {
-      hints.push("Invalid login: Double-check GMAIL_USER and GMAIL_APP_PASSWORD.");
+      hints.push(
+        "Invalid login: Double-check GMAIL_USER and GMAIL_APP_PASSWORD."
+      );
     }
     if (/534-5.7.14/i.test(err?.response || "")) {
-      hints.push("Google blocked sign-in. Confirm that you are using an App Password, not your normal password.");
+      hints.push(
+        "Google blocked sign-in. Confirm that you are using an App Password, not your normal password."
+      );
     }
-    console.error("Email transport verify failed:", err?.message || err, hints.length ? `\nHints:\n- ${hints.join("\n- ")}` : "");
+    console.error(
+      "Email transport verify failed:",
+      err?.message || err,
+      hints.length ? `\nHints:\n- ${hints.join("\n- ")}` : ""
+    );
     return { ok: false, reason: "verify-failed", error: err };
   }
 }
@@ -92,8 +100,10 @@ async function sendEmail({ to, subject, html, text }) {
       success: false,
       error:
         ready.reason === "verify-failed"
-          ? `Email transport verification failed: ${ready.error?.message || "unknown error"}`
-          : "Email transport not available (missing credentials)"
+          ? `Email transport verification failed: ${
+              ready.error?.message || "unknown error"
+            }`
+          : "Email transport not available (missing credentials)",
     };
   }
 
@@ -110,20 +120,34 @@ async function sendEmail({ to, subject, html, text }) {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Gmail sent successfully to ${to}. Message ID: ${info.messageId}`);
-    return { success: true, messageId: info.messageId, accepted: info.accepted };
+    console.log(
+      `✅ Gmail sent successfully to ${to}. Message ID: ${info.messageId}`
+    );
+    return {
+      success: true,
+      messageId: info.messageId,
+      accepted: info.accepted,
+    };
   } catch (err) {
     const hints = [];
     if (err?.code === "EAUTH") {
-      hints.push("Check GMAIL_USER and GMAIL_APP_PASSWORD (use an App Password with 2FA).");
+      hints.push(
+        "Check GMAIL_USER and GMAIL_APP_PASSWORD (use an App Password with 2FA)."
+      );
     }
     if (err?.code === "ESOCKET") {
-      hints.push("Network issue reaching smtp.gmail.com. Check outbound connectivity and firewall.");
+      hints.push(
+        "Network issue reaching smtp.gmail.com. Check outbound connectivity and firewall."
+      );
     }
     if (/Invalid login/i.test(err?.message || "")) {
       hints.push("Invalid login: App Password likely incorrect or revoked.");
     }
-    console.error("Email send failed:", err?.message || err, hints.length ? `\nHints:\n- ${hints.join("\n- ")}` : "");
+    console.error(
+      "Email send failed:",
+      err?.message || err,
+      hints.length ? `\nHints:\n- ${hints.join("\n- ")}` : ""
+    );
     return { success: false, error: err.message };
   }
 }
@@ -154,7 +178,9 @@ function baseTemplate({ title, body, ctaText, ctaHref }) {
 }
 
 function registrationTemplate(user) {
-  const title = `Welcome to ${APP_NAME}, ${user?.name?.split(" ")[0] || "Reader"}!`;
+  const title = `Welcome to ${APP_NAME}, ${
+    user?.name?.split(" ")[0] || "Reader"
+  }!`;
   const body = `
     <p>✅ Your account has been created successfully.</p>
     <p>With your new account, you can:</p>
@@ -184,7 +210,9 @@ function paymentSubmittedTemplate(user, payment) {
   const title = `Payment Submitted – Pending Review`;
   const body = `
     <p>Hi ${user?.name?.split(" ")[0] || "there"},</p>
-    <p>We received your membership payment submission with reference <b>${payment?.reference || "N/A"}</b>.</p>
+    <p>We received your membership payment submission with reference <b>${
+      payment?.reference || "N/A"
+    }</b>.</p>
     <p>Status: <b>Pending</b> ⏳</p>
     <p>We will review it shortly and notify you once it's approved or if more info is required.</p>
   `;
@@ -211,7 +239,9 @@ function paymentStatusTemplate(user, payment) {
       : "Unfortunately, your payment was not approved. You may resubmit with a valid screenshot/reference."; // prettier-ignore
   const body = `
     <p>Hi ${user?.name?.split(" ")[0] || "there"},</p>
-    <p>Your membership payment (reference <b>${payment?.reference || "N/A"}</b>) has been <b>${st}</b> ${st === "Approved" ? "🎉" : ""}</p>
+    <p>Your membership payment (reference <b>${
+      payment?.reference || "N/A"
+    }</b>) has been <b>${st}</b> ${st === "Approved" ? "🎉" : ""}</p>
     <p>${extra}</p>
   `;
   return {
@@ -232,8 +262,12 @@ function borrowConfirmationTemplate(user, borrow, book) {
   const title = `Borrowed: ${book?.title || "Book"}`;
   const body = `
     <p>Hi ${user?.name?.split(" ")[0] || "there"},</p>
-    <p>You borrowed <b>${book?.title || "a book"}</b> by ${book?.author || "an unknown author"}.</p>
-    <p>Due Date: <b>${borrow?.dueDate ? new Date(borrow.dueDate).toLocaleDateString() : "N/A"}</b></p>
+    <p>You borrowed <b>${book?.title || "a book"}</b> by ${
+    book?.author || "an unknown author"
+  }.</p>
+    <p>Due Date: <b>${
+      borrow?.dueDate ? new Date(borrow.dueDate).toLocaleDateString() : "N/A"
+    }</b></p>
     <p>Please return on time to avoid overdue status.</p>
   `;
   return {
@@ -251,7 +285,9 @@ function returnRequestedTemplate(user, borrow, book) {
   const title = `Return Requested – Pending Approval`;
   const body = `
     <p>Hi ${user?.name?.split(" ")[0] || "there"},</p>
-    <p>Your return request for <b>${book?.title || "a book"}</b> has been submitted.</p>
+    <p>Your return request for <b>${
+      book?.title || "a book"
+    }</b> has been submitted.</p>
     <p>Status: <b>Pending</b> ⏳ — a librarian will review and approve shortly.</p>
   `;
   return {
@@ -272,8 +308,14 @@ function returnApprovedTemplate(user, borrow, book) {
     : `Return Approved – Thank You!`;
   const body = `
     <p>Hi ${user?.name?.split(" ")[0] || "there"},</p>
-    <p>Your return request for <b>${book?.title || "a book"}</b> has been <b>approved</b>.</p>
-    ${isOverdue ? '<p>Note: This book was returned past its due date and has been marked as <b>Overdue</b>.</p>' : ''}
+    <p>Your return request for <b>${
+      book?.title || "a book"
+    }</b> has been <b>approved</b>.</p>
+    ${
+      isOverdue
+        ? "<p>Note: This book was returned past its due date and has been marked as <b>Overdue</b>.</p>"
+        : ""
+    }
     <p>We look forward to your next read!</p>
   `;
   return {
@@ -291,7 +333,9 @@ function returnDeclinedTemplate(user, borrow, book) {
   const title = `Return Request Declined`;
   const body = `
     <p>Hi ${user?.name?.split(" ")[0] || "there"},</p>
-    <p>Your return request for <b>${book?.title || "a book"}</b> was not approved.</p>
+    <p>Your return request for <b>${
+      book?.title || "a book"
+    }</b> was not approved.</p>
     <p>Status: <b>Active</b>. Please keep the book until further notice or contact the library for details.</p>
   `;
   return {
@@ -313,7 +357,9 @@ module.exports = {
     if (!res.ok) {
       throw new Error(
         res.reason === "verify-failed"
-          ? `Email transport verify failed: ${res.error?.message || "unknown error"}`
+          ? `Email transport verify failed: ${
+              res.error?.message || "unknown error"
+            }`
           : "Email transport not available: missing credentials"
       );
     }
@@ -324,7 +370,12 @@ module.exports = {
 
   sendRegistrationEmail: async (user) => {
     const tpl = registrationTemplate(user);
-    return sendEmail({ to: user.email, subject: tpl.subject, html: tpl.html, text: tpl.text });
+    return sendEmail({
+      to: user.email,
+      subject: tpl.subject,
+      html: tpl.html,
+      text: tpl.text,
+    });
   },
 
   sendPaymentSubmittedEmail: async (user, payment) => {
