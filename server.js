@@ -11,10 +11,6 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoute");
 const { ensureAdminUserExists } = require("./seed");
 
-// Optional: Verify that the Gmail environment variables are loaded
-console.log("GMAIL_USER:", process.env.GMAIL_USER ? "Loaded" : "MISSING");
-console.log("GMAIL_APP_PASSWORD:", process.env.GMAIL_APP_PASSWORD ? "Loaded" : "MISSING");
-
 const app = express();
 
 // Connect DB
